@@ -1,26 +1,3 @@
-# RelationalGraphLearning
-This repository contains the codes for our paper, which is accepted at IROS 2020. 
-For more details, please refer to the [paper](https://arxiv.org/abs/1909.13165).
-
-
-## Abstract
-We present a relational graph learning approach for robotic crowd navigation using model-based deep reinforcement 
-learning that plans actions by looking into the future.
-Our approach reasons about the relations between all agents based on their latent features and uses a Graph Convolutional 
-Network to encode higher-order interactions in each agent's state representation, which is subsequently leveraged for 
-state prediction and value estimation.
-The ability to predict human motion allows us to perform multi-step lookahead planning, taking into account the temporal 
-evolution of human crowds.
-We evaluate our approach against a state-of-the-art baseline for crowd navigation and ablations of our model to 
-demonstrate that navigation with our approach is more efficient, results in fewer collisions, and avoids failure cases 
-involving oscillatory and freezing behaviors.
-
-
-
-## Method Overview
-<img src="https://i.imgur.com/8unQNIv.png" width="1000" />
-
-
 ## Setup
 1. Install [Python-RVO2](https://github.com/sybrenstuvel/Python-RVO2) library
 2. Install [socialforce](https://github.com/ChanganVR/socialforce) library
@@ -37,6 +14,7 @@ inside the crowd_nav/ folder.
 
 
 1. Train a policy.
+
 First, create a config file for the particular policy to be trained. E.g. if training an LSTM-RL policy, create a config named lstm_rl.py under crowd_nav/configs/icra_benchmark.
 The base config file should at least contain the following lines:
 ```
