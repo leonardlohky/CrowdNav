@@ -37,8 +37,34 @@ inside the crowd_nav/ folder.
 
 
 1. Train a policy.
+First, create a config file for the particular policy to be trained. E.g. if training an LSTM-RL policy, create a config named lstm_rl.py under crowd_nav/configs/icra_benchmark.
+The base config file should at least contain the following lines:
 ```
+from crowd_nav.configs.icra_benchmark.config import BaseEnvConfig, BasePolicyConfig, BaseTrainConfig, Config
+
+class EnvConfig(BaseEnvConfig):
+    def __init__(self, debug=False):
+        super(EnvConfig, self).__init__(debug)
+
+
+class PolicyConfig(BasePolicyConfig):
+    def __init__(self, debug=False):
+        super(PolicyConfig, self).__init__(debug)
+        self.name = 'sarl' # change policy name here
+
+
+class TrainConfig(BaseTrainConfig):
+    def __init__(self, debug=False):
+        super(TrainConfig, self).__init__(debug)
+```
+
+After creating the config file for the policy, train it
+```
+# default params are for RGL policy
 python train.py --policy rgl
+
+# to train other policies, e.g. LSTM-RL
+python train.py --policy lstm_rl --config configs/icra_benchmark/lstm_rl.py --output_dir data_lstmRL/output
 ```
 2. Test policies with 500 test cases.
 ```

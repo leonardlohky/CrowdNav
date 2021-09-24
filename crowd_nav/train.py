@@ -128,7 +128,7 @@ def main(args):
         trainer = VNRLTrainer(model, memory, device, policy, batch_size, optimizer, writer)
     explorer = Explorer(env, robot, device, writer, memory, policy.gamma, target_policy=policy)
 
-    # imitation learning
+    # imitation learning to warm start model for actual training later on
     if args.resume:
         if not os.path.exists(rl_weight_file):
             logging.error('RL weights does not exist')
