@@ -85,6 +85,14 @@ class BasePolicyConfig(object):
     lstm_rl.with_om = False
     lstm_rl.with_interaction_module = True
 
+    gru_rl = Config()
+    gru_rl.global_state_dim = 50
+    gru_rl.mlp1_dims = [150, 100, 100, 50]
+    gru_rl.mlp2_dims = [150, 100, 100, 1]
+    gru_rl.multiagent_training = True
+    gru_rl.with_om = False
+    gru_rl.with_interaction_module = True
+    
     srl = Config()
     srl.mlp1_dims = [150, 100, 100, 50]
     srl.mlp2_dims = [150, 100, 100, 1]
