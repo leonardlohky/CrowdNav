@@ -543,7 +543,7 @@ def pad_batch(batch):
         sequences = sorted([x[position] for x in batch], reverse=True, key=lambda t: t.size()[0])
         packed_sequences = torch.nn.utils.rnn.pack_sequence(sequences)
         return torch.nn.utils.rnn.pad_packed_sequence(packed_sequences, batch_first=True)
-    print(batch[0], len(batch[0]))
+    # print(batch[0], len(batch[0]))
     states = sort_states(0)
     values = torch.cat([x[1] for x in batch]).unsqueeze(1)
     rewards = torch.cat([x[2] for x in batch]).unsqueeze(1)
