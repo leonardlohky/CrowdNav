@@ -24,3 +24,6 @@ def point_to_segment_dist(x1, y1, x2, y2, x3, y3):
     y = y1 + u * py
 
     return np.linalg.norm((x - x3, y-y3))
+
+def dist(x1, y1, x2, y2):
+    return np.sqrt( (x2 - x1)**2 + (y2 - y1)**2 )

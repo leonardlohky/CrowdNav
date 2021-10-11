@@ -152,6 +152,7 @@ class BaseTrainConfig(object):
     train.train_batches = 100
     # training episodes in outer loop
     train.train_episodes = 10000
+    train.num_env_steps = 10e6  # number of environment steps to train: 10e6 for holonomic, 20e6 for unicycle
     # number of episodes sampled in one training episode
     train.sample_episodes = 1
     train.target_update_interval = 1000

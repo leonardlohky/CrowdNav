@@ -125,7 +125,7 @@ def main(args):
     model = policy.get_model()
     batch_size = train_config.trainer.batch_size
     optimizer = train_config.trainer.optimizer
-    print(policy_config.name)
+
     if policy_config.name == 'model_predictive_rl':
         trainer = MPRLTrainer(model, policy.state_predictor, memory, device, policy, writer, batch_size, optimizer, env.human_num,
                               reduce_sp_update_frequency=train_config.train.reduce_sp_update_frequency,
@@ -301,8 +301,8 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Parse configuration file')
     parser.add_argument('--policy', type=str, default='tree_search_rl')
-    parser.add_argument('--config', type=str, default='configs/icra_benchmark/ts_separate.py')
-    parser.add_argument('--output_dir', type=str, default='data/output1')
+    parser.add_argument('--config', type=str, default='configs/icra_benchmark/tree_search_rl.py')
+    parser.add_argument('--output_dir', type=str, default='data/output')
     parser.add_argument('--overwrite', default=False, action='store_true')
     parser.add_argument('--weights', type=str)
     parser.add_argument('--resume', default=False, action='store_true')
