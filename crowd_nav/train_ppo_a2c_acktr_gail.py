@@ -22,7 +22,7 @@ from pytorchBaselines.a2c_ppo_acktr.arguments import get_args
 from pytorchBaselines.a2c_ppo_acktr.envs import make_vec_envs
 from pytorchBaselines.a2c_ppo_acktr.model import Policy
 from pytorchBaselines.a2c_ppo_acktr.storage import RolloutStorage
-from evaluation import evaluate
+from pytorchBaselines.evaluation import evaluate
 
 from crowd_sim import *
 
@@ -236,7 +236,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy', type=str, default='ppo')
     parser.add_argument('--algo', type=str, default='ppo')
     parser.add_argument('--config', type=str, default='configs/icra_benchmark/ppo.py')
-    parser.add_argument('--output_dir', type=str, default='data/output')
+    parser.add_argument('--output_dir', type=str, default='data_ppo/output')
     parser.add_argument('--overwrite', default=False, action='store_true')
     parser.add_argument('--weights', type=str)
     parser.add_argument('--resume', default=False, action='store_true')

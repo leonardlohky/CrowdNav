@@ -26,7 +26,7 @@ class ValueNetwork1(nn.Module):
             lengths = torch.IntTensor([state.size()[1]])
         self_state = state[:, 0, :self.self_state_dim]
         packed_sequence = torch.nn.utils.rnn.pack_padded_sequence(state, lengths, batch_first=True)
-        _, (hn, cn) = self.lstm(packed_sequence)
+        _, hn = self.gru(packed_sequence)
         hn = hn.squeeze(0)
         joint_state = torch.cat([self_state, hn], dim=1)
         value = self.mlp(joint_state)
@@ -39,7 +39,7 @@ class ValueNetwork2(nn.Module):
         self.self_state_dim = self_state_dim
         self.gru_hidden_dim = gru_hidden_dim
         self.mlp1 = mlp(input_dim, mlp1_dims)
-        self.lstm = nn.LSTM(mlp1_dims[-1], gru_hidden_dim, batch_first=True)
+        self.gru = nn.GRU(mlp1_dims[-1], gru_hidden_dim, batch_first=True)
         self.mlp = mlp(self_state_dim + gru_hidden_dim, mlp_dims)
 
     def forward(self, state_input):
@@ -62,7 +62,7 @@ class ValueNetwork2(nn.Module):
         mlp1_output = torch.reshape(mlp1_output, (size[0], size[1], -1))
         packed_mlp1_output = torch.nn.utils.rnn.pack_padded_sequence(mlp1_output, lengths, batch_first=True)
 
-        output, (hn, cn) = self.lstm(packed_mlp1_output)
+        output, hn = self.gru(packed_mlp1_output)
         hn = hn.squeeze(0)
         joint_state = torch.cat([self_state, hn], dim=1)
         value = self.mlp(joint_state)
@@ -80,11 +80,11 @@ class GruRL(MultiHumanRL):
         self.with_om = config.gru_rl.with_om
         self.multiagent_training = config.gru_rl.multiagent_training
 
-        mlp_dims = config.lstm_rl.mlp2_dims
-        global_state_dim = config.lstm_rl.global_state_dim
-        with_interaction_module = config.lstm_rl.with_interaction_module
+        mlp_dims = config.gru_rl.mlp2_dims
+        global_state_dim = config.gru_rl.global_state_dim
+        with_interaction_module = config.gru_rl.with_interaction_module
         if with_interaction_module:
-            mlp1_dims = config.lstm_rl.mlp1_dims
+            mlp1_dims = config.gru_rl.mlp1_dims
             self.model = ValueNetwork2(self.input_dim(), self.self_state_dim, mlp1_dims, mlp_dims, global_state_dim)
         else:
             self.model = ValueNetwork1(self.input_dim(), self.self_state_dim, mlp_dims, global_state_dim)
