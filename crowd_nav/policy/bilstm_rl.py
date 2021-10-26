@@ -30,8 +30,11 @@ class ValueNetwork1(nn.Module):
         self_state = state[:, 0, :self.self_state_dim]
         packed_sequence = torch.nn.utils.rnn.pack_padded_sequence(state, lengths, batch_first=True)
         _, (hn, cn) = self.bilstm(packed_sequence)
-        hn = hn.squeeze(0)
-        joint_state = torch.cat([self_state, hn], dim=1)
+        #hn = hn.squeeze(0)
+        hn_1 = hn[0]
+        hn_2 = hn[1]
+        hn_3 = hn_1 + hn_2
+        joint_state = torch.cat([self_state, hn_3], dim=1)
         value = self.mlp(joint_state)
         return value
 
@@ -53,21 +56,48 @@ class ValueNetwork2(nn.Module):
         """
         if isinstance(state_input, tuple):
             state, lengths = state_input
+            #print('state1',state)
+            #print('state1 shape',state.shape)
+            #print('lengths1', lengths)
         else:
             state = state_input
             lengths = torch.IntTensor([state.size()[1]])
+            #print('state2',state)
+            #print('lengths2', lengths)
 
         size = state.shape
         self_state = state[:, 0, :self.self_state_dim]
+        #print('size', size)
+        #print('self state', self_state)
+        #print('self state shape', self_state.shape)
 
         state = torch.reshape(state, (-1, size[2]))
+        #print('state torch reshape', state)
+        #print('state torch reshape shape', state.shape)
         mlp1_output = self.mlp1(state)
+        #print('mlp1_output', mlp1_output)
+        #print('mlp1_output shape', mlp1_output.shape)
         mlp1_output = torch.reshape(mlp1_output, (size[0], size[1], -1))
+        #print('mlp1_output reshape', mlp1_output)
+        #print('mlp1_output reshape shape', mlp1_output.shape)
         packed_mlp1_output = torch.nn.utils.rnn.pack_padded_sequence(mlp1_output, lengths, batch_first=True)
 
+        #print(packed_mlp1_output)
         output, (hn, cn) = self.bilstm(packed_mlp1_output)
-        hn = hn.squeeze(0)
-        joint_state = torch.cat([self_state, hn], dim=1)
+        #print('Print hn', hn[0])
+        #print('Print hn shape', hn[0].shape)
+        #hn_1 = hn[0].squeeze(0)
+        #hn_2 = hn[1].squeeze(0)
+        hn_1 = hn[0]
+        hn_2 = hn[1]
+        #print('Print hn squeeze', hn_1)
+        #print('Print hn squeeze shape', hn_1.shape)
+        hn_3 = hn_1 + hn_2
+        #print('Print hn_3 squeeze', hn_3)
+        #print('Print hn_3 squeeze shape', hn_3.shape)
+        joint_state = torch.cat([self_state, hn_3], dim=1)
+        #print('joint state', joint_state)
+        #print('joint state shape', joint_state.shape)
         value = self.mlp(joint_state)
         return value
 
