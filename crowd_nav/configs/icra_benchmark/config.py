@@ -25,6 +25,8 @@ class BaseEnvConfig(object):
     reward.success_reward = 1
     reward.collision_penalty = -0.25
     reward.discomfort_dist = 0.2
+    reward.discomfort_dist_front = 0.25 # discomfort distance for the front half of the robot
+    reward.discomfort_dist_back = 0.25 # discomfort distance for the back half of the robot
     reward.discomfort_penalty_factor = 0.5
 
     sim = Config()
@@ -35,6 +37,7 @@ class BaseEnvConfig(object):
     sim.human_num = 5
     sim.nonstop_human = False
     sim.centralized_planning = True
+    sim.group_human = False
 
     humans = Config()
     humans.visible = True
@@ -42,14 +45,41 @@ class BaseEnvConfig(object):
     humans.radius = 0.3
     humans.v_pref = 1
     humans.sensor = 'coordinates'
+    humans.FOV = 2. # FOV = this values * PI
 
+    # a human may change its goal before it reaches its old goal
+    humans.random_goal_changing = False
+    humans.goal_change_chance = 0.25
+    
+    # a human may change its goal after it reaches its old goal
+    humans.end_goal_changing = False
+    humans.end_goal_change_chance = 1.0
+
+    # a human may change its radius and/or v_pref after it reaches its current goal
+    humans.random_radii = False
+    humans.random_v_pref = False
+
+    # one human may have a random chance to be blind to other agents at every time step
+    humans.random_unobservability = False
+    humans.unobservable_chance = 0.3
+
+    humans.random_policy_changing = False
+    
+    noise = Config()
+    noise.add_noise = False
+    # uniform, gaussian
+    noise.type = "uniform"
+    noise.magnitude = 0.1
+    
     robot = Config()
     robot.visible = False
     robot.policy = 'none'
     robot.radius = 0.3
     robot.v_pref = 1
     robot.sensor = 'coordinates'
+    robot.FOV = 2. # FOV = this values * PI
 
+    
     def __init__(self, debug=False):
         if debug:
             self.env.val_size = 1
@@ -129,6 +159,36 @@ class BasePolicyConfig(object):
     gnn.edge_dim = 32
     gnn.planning_dims = [150, 100, 100, 1]
 
+    # SRNN config
+    SRNN = Config()
+    # RNN size
+    SRNN.human_node_rnn_size = 128  # Size of Human Node RNN hidden state
+    SRNN.human_human_edge_rnn_size = 256  # Size of Human Human Edge RNN hidden state
+
+    # Input and output size
+    SRNN.human_node_input_size = 3  # Dimension of the node features
+    SRNN.human_human_edge_input_size = 2  # Dimension of the edge features
+    SRNN.human_node_output_size = 256  # Dimension of the node output
+
+    # Embedding size
+    SRNN.human_node_embedding_size = 64  # Embedding size of node features
+    SRNN.human_human_edge_embedding_size = 64  # Embedding size of edge features
+
+    # Attention vector dimension
+    SRNN.attention_size = 64  # Attention size
+    
+    # ppo
+    ppo = Config()
+    ppo.num_mini_batch = 2  # number of batches for ppo
+    ppo.num_steps = 30  # number of forward steps
+    ppo.recurrent_policy = True  # use a recurrent policy
+    ppo.epoch = 5  # number of ppo epochs
+    ppo.clip_param = 0.2  # ppo clip parameter
+    ppo.value_loss_coef = 0.5  # value loss coefficient
+    ppo.entropy_coef = 0.0  # entropy term coefficient
+    ppo.use_gae = True  # use generalized advantage estimation
+    ppo.gae_lambda = 0.95  # gae lambda parameter
+    
     def __init__(self, debug=False):
         pass
 
@@ -148,6 +208,8 @@ class BaseTrainConfig(object):
     train = Config()
     train.rl_train_epochs = 1
     train.rl_learning_rate = 0.001
+    train.num_processes = 12 # how many training CPU processes to use
+    train.cuda = True  # use CUDA for training
     # number of batches to train at the end of training episode il_episodes
     train.train_batches = 100
     # training episodes in outer loop

@@ -78,6 +78,30 @@ class JointState(object):
 
         return robot_state_tensor, human_states_tensor
 
+class ObservableState_noV(object):
+    def __init__(self, px, py, radius):
+        self.px = px
+        self.py = py
+        self.radius = radius
+
+        self.position = (self.px, self.py)
+
+
+    def __add__(self, other):
+        return other + (self.px, self.py, self.radius)
+
+    def __str__(self):
+        return ' '.join([str(x) for x in [self.px, self.py, self.radius]])
+
+
+class JointState_noV(object):
+    def __init__(self, self_state, human_states):
+        assert isinstance(self_state, FullState)
+        for human_state in human_states:
+            assert isinstance(human_state, ObservableState_noV)
+
+        self.self_state = self_state
+        self.human_states = human_states
 
 def tensor_to_joint_state(state):
     robot_state, human_states = state

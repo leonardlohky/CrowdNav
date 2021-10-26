@@ -3,15 +3,35 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
 
 def _flatten_helper(T, N, _tensor):
-    return _tensor.view(T * N, *_tensor.size()[2:])
-
+    if isinstance(_tensor, dict):
+        for key in _tensor:
+            _tensor[key] = _tensor[key].view(T * N, *(_tensor[key].size()[2:]))
+        return _tensor
+    else:
+        return _tensor.view(T * N, *_tensor.size()[2:])
 
 class RolloutStorage(object):
     def __init__(self, num_steps, num_processes, obs_shape, action_space,
-                 recurrent_hidden_state_size):
-        self.obs = torch.zeros(num_steps + 1, num_processes, *obs_shape)
-        self.recurrent_hidden_states = torch.zeros(
-            num_steps + 1, num_processes, recurrent_hidden_state_size)
+                 human_node_rnn_size, human_human_edge_rnn_size, recurrent_cell_type):
+
+        if isinstance(obs_shape, dict):
+            self.obs = {}
+            for key in obs_shape:
+                self.obs[key] = torch.zeros(num_steps + 1, num_processes, *(obs_shape[key].shape))
+            self.human_num = obs_shape['spatial_edges'].shape[0]
+        else:
+            self.obs = torch.zeros(num_steps + 1, num_processes, *obs_shape)
+
+        double_rnn_size = 1 if recurrent_cell_type=="GRU" else 2
+
+        self.recurrent_hidden_states = {} # a dict of tuple(hidden state, cell state)
+
+        node_num = 1
+        edge_num = self.human_num + 1
+
+        self.recurrent_hidden_states['human_node_rnn'] = torch.zeros(num_steps + 1, num_processes, node_num, human_node_rnn_size*double_rnn_size)
+        self.recurrent_hidden_states['human_human_edge_rnn'] = torch.zeros(num_steps + 1, num_processes, edge_num, human_human_edge_rnn_size*double_rnn_size)
+
         self.rewards = torch.zeros(num_steps, num_processes, 1)
         self.value_preds = torch.zeros(num_steps + 1, num_processes, 1)
         self.returns = torch.zeros(num_steps + 1, num_processes, 1)
@@ -33,8 +53,11 @@ class RolloutStorage(object):
         self.step = 0
 
     def to(self, device):
-        self.obs = self.obs.to(device)
-        self.recurrent_hidden_states = self.recurrent_hidden_states.to(device)
+        for key in self.obs:
+            self.obs[key] = self.obs[key].to(device)
+        for key in self.recurrent_hidden_states:
+            self.recurrent_hidden_states[key] = self.recurrent_hidden_states[key].to(device)
+
         self.rewards = self.rewards.to(device)
         self.value_preds = self.value_preds.to(device)
         self.returns = self.returns.to(device)
@@ -45,9 +68,13 @@ class RolloutStorage(object):
 
     def insert(self, obs, recurrent_hidden_states, actions, action_log_probs,
                value_preds, rewards, masks, bad_masks):
-        self.obs[self.step + 1].copy_(obs)
-        self.recurrent_hidden_states[self.step +
-                                     1].copy_(recurrent_hidden_states)
+
+
+        for key in self.obs:
+            self.obs[key][self.step + 1].copy_(obs[key])
+        for key in recurrent_hidden_states:
+            self.recurrent_hidden_states[key][self.step + 1].copy_(recurrent_hidden_states[key])
+
         self.actions[self.step].copy_(actions)
         self.action_log_probs[self.step].copy_(action_log_probs)
         self.value_preds[self.step].copy_(value_preds)
@@ -58,8 +85,12 @@ class RolloutStorage(object):
         self.step = (self.step + 1) % self.num_steps
 
     def after_update(self):
-        self.obs[0].copy_(self.obs[-1])
-        self.recurrent_hidden_states[0].copy_(self.recurrent_hidden_states[-1])
+
+        for key in self.obs:
+            self.obs[key][0].copy_(self.obs[key][-1])
+        for key in self.recurrent_hidden_states:
+            self.recurrent_hidden_states[key][0].copy_(self.recurrent_hidden_states[key][-1])
+
         self.masks[0].copy_(self.masks[-1])
         self.bad_masks[0].copy_(self.bad_masks[-1])
 
@@ -124,9 +155,16 @@ class RolloutStorage(object):
             mini_batch_size,
             drop_last=True)
         for indices in sampler:
-            obs_batch = self.obs[:-1].view(-1, *self.obs.size()[2:])[indices]
-            recurrent_hidden_states_batch = self.recurrent_hidden_states[:-1].view(
-                -1, self.recurrent_hidden_states.size(-1))[indices]
+
+
+            obs_batch = {}
+            for key in self.obs:
+                obs_batch[key] = self.obs[key][:-1].view(-1, *self.obs[key].size()[2:])[indices]
+            recurrent_hidden_states_batch = {}
+            for key in self.recurrent_hidden_states:
+                recurrent_hidden_states_batch[key] = self.recurrent_hidden_states[key][:-1].view(
+                -1, self.recurrent_hidden_states[key].size(-1))[indices]
+
             actions_batch = self.actions.view(-1,
                                               self.actions.size(-1))[indices]
             value_preds_batch = self.value_preds[:-1].view(-1, 1)[indices]
@@ -151,8 +189,14 @@ class RolloutStorage(object):
         num_envs_per_batch = num_processes // num_mini_batch
         perm = torch.randperm(num_processes)
         for start_ind in range(0, num_processes, num_envs_per_batch):
-            obs_batch = []
-            recurrent_hidden_states_batch = []
+
+            obs_batch = {}
+            for key in self.obs:
+                obs_batch[key] = []
+            recurrent_hidden_states_batch = {}
+            for key in self.recurrent_hidden_states:
+                recurrent_hidden_states_batch[key] = []
+
             actions_batch = []
             value_preds_batch = []
             return_batch = []
@@ -162,9 +206,13 @@ class RolloutStorage(object):
 
             for offset in range(num_envs_per_batch):
                 ind = perm[start_ind + offset]
-                obs_batch.append(self.obs[:-1, ind])
-                recurrent_hidden_states_batch.append(
-                    self.recurrent_hidden_states[0:1, ind])
+
+
+                for key in self.obs:
+                    obs_batch[key].append(self.obs[key][:-1, ind])
+                for key in self.recurrent_hidden_states:
+                    recurrent_hidden_states_batch[key].append(self.recurrent_hidden_states[key][0:1, ind])
+
                 actions_batch.append(self.actions[:, ind])
                 value_preds_batch.append(self.value_preds[:-1, ind])
                 return_batch.append(self.returns[:-1, ind])
@@ -175,7 +223,7 @@ class RolloutStorage(object):
 
             T, N = self.num_steps, num_envs_per_batch
             # These are all tensors of size (T, N, -1)
-            obs_batch = torch.stack(obs_batch, 1)
+
             actions_batch = torch.stack(actions_batch, 1)
             value_preds_batch = torch.stack(value_preds_batch, 1)
             return_batch = torch.stack(return_batch, 1)
@@ -184,9 +232,11 @@ class RolloutStorage(object):
                 old_action_log_probs_batch, 1)
             adv_targ = torch.stack(adv_targ, 1)
 
-            # States is just a (N, -1) tensor
-            recurrent_hidden_states_batch = torch.stack(
-                recurrent_hidden_states_batch, 1).view(N, -1)
+            for key in obs_batch:
+                obs_batch[key] = torch.stack(obs_batch[key], 1)
+            for key in recurrent_hidden_states_batch:
+                temp = torch.stack(recurrent_hidden_states_batch[key], 1)
+                recurrent_hidden_states_batch[key] = temp.view(N, *(temp.size()[2:]))
 
             # Flatten the (T, N, ...) tensors to (T * N, ...)
             obs_batch = _flatten_helper(T, N, obs_batch)

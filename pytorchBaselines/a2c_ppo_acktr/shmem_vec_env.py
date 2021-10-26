@@ -34,7 +34,7 @@ class ShmemVecEnv(VecEnv):
         if spaces:
             observation_space, action_space = spaces
         else:
-            logger.log('Creating dummy env object to get spaces')
+            print('Creating dummy env object to get spaces')
             with logger.scoped_configure(format_strs=[]):
                 dummy = env_fns[0]()
                 observation_space, action_space = dummy.observation_space, dummy.action_space
