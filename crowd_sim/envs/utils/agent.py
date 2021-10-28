@@ -4,7 +4,7 @@ import numpy as np
 from numpy.linalg import norm
 from crowd_sim.envs.policy.policy_factory import policy_factory
 from crowd_sim.envs.utils.action import ActionXY, ActionRot
-from crowd_sim.envs.utils.state import ObservableState, FullState
+from crowd_sim.envs.utils.state import ObservableState, FullState, ObservableState_noV
 
 
 class Agent(object):
@@ -65,6 +65,15 @@ class Agent(object):
     def get_observable_state(self):
         return ObservableState(self.px, self.py, self.vx, self.vy, self.radius)
 
+    def get_observable_state_list(self):
+        return [self.px, self.py, self.vx, self.vy, self.radius]
+
+    def get_observable_state_noV(self):
+        return ObservableState_noV(self.px, self.py, self.radius)
+
+    def get_observable_state_list_noV(self):
+        return [self.px, self.py, self.radius]
+    
     def get_next_observable_state(self, action):
         self.check_validity(action)
         pos = self.compute_position(action, self.time_step)
@@ -80,6 +89,13 @@ class Agent(object):
     def get_full_state(self):
         return FullState(self.px, self.py, self.vx, self.vy, self.radius, self.gx, self.gy, self.v_pref, self.theta)
 
+    def get_full_state_list(self):
+        return [self.px, self.py, self.vx, self.vy, self.radius, self.gx, self.gy, self.v_pref, self.theta]
+    
+    def get_full_state_list_noV(self):
+        return [self.px, self.py, self.radius, self.gx, self.gy, self.v_pref, self.theta]
+        # return [self.px, self.py, self.radius, self.gx, self.gy, self.v_pref]
+        
     def get_position(self):
         return self.px, self.py
 

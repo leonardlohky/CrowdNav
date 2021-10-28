@@ -69,7 +69,6 @@ def make_env(env_id, seed, rank, log_dir, allow_early_resets, config=None, envNu
             env,
             None,
             allow_early_resets=allow_early_resets)
-        print(env)
 
         if isinstance(env.observation_space, Box):
             if is_atari:
@@ -102,6 +101,8 @@ def make_vec_envs(env_name,
                   num_frame_stack=None,
                   config=None,
                   ax=None, test_case=-1):
+    
+    print("Generating %d envs total: " % num_processes)
     envs = [
         make_env(env_name, seed, i, log_dir, allow_early_resets, config=config,
                  envNum=num_processes, ax=ax, test_case=test_case)
@@ -112,7 +113,6 @@ def make_vec_envs(env_name,
         envs = ShmemVecEnv(envs, context='fork')
     else:
         envs = DummyVecEnv(envs)
-
     if isinstance(envs.observation_space, Box):
         if len(envs.observation_space.shape) == 1:
             if gamma is None:
@@ -120,14 +120,13 @@ def make_vec_envs(env_name,
             else:
                 envs = VecNormalize(envs, gamma=gamma, ob=False, ret=False)
 
-    envs = VecPyTorch(envs, device)
-
     if num_frame_stack is not None:
         envs = VecPyTorchFrameStack(envs, num_frame_stack, device)
     elif isinstance(envs.observation_space, Box):
         if len(envs.observation_space.shape) == 3:
             envs = VecPyTorchFrameStack(envs, 4, device)
 
+    envs = VecPyTorch(envs, device)
     return envs
 
 

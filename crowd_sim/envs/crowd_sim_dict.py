@@ -5,10 +5,10 @@ import numpy as np
 from numpy.linalg import norm
 import copy
 from crowd_sim.envs.utils.action import ActionRot, ActionXY
-from crowd_sim.envs import CrowdSim
+from crowd_sim.envs import CrowdSimRL
 
 
-class CrowdSimDict(CrowdSim):
+class CrowdSimDict(CrowdSimRL):
     def __init__(self):
         """
         Movement simulation for n+1 agents

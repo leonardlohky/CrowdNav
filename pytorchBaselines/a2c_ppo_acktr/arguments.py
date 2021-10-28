@@ -5,6 +5,34 @@ import torch
 
 def get_args():
     parser = argparse.ArgumentParser(description='RL')
+    parser.add_argument('--policy', 
+                        type=str, 
+                        default='ppo')
+    parser.add_argument('--config', 
+                        type=str, 
+                        default='configs/icra_benchmark/ppo.py')
+    parser.add_argument('--output_dir', 
+                        type=str,
+                        default='data_ppo/output')
+    parser.add_argument('--overwrite', 
+                        default=False, 
+                        action='store_true')
+    parser.add_argument('--weights', 
+                        type=str)
+    parser.add_argument('--resume', 
+                        default=False, 
+                        action='store_true')
+    parser.add_argument('--gpu', 
+                        default=False, action='store_true')
+    parser.add_argument('--debug', 
+                        default=False, 
+                        action='store_true')
+    parser.add_argument('--test_after_every_eval', 
+                        default=False, 
+                        action='store_true')
+    parser.add_argument('--randomseed', 
+                        type=int, 
+                        default=7)
     parser.add_argument(
         '--algo', default='a2c', help='algorithm to use: a2c | ppo | acktr')
     parser.add_argument(

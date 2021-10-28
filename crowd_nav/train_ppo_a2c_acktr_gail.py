@@ -83,10 +83,10 @@ def main(sys_args):
 						 args.gamma, None, device, False, config=env_config)
 
     actor_critic = Policy(
-        envs.observation_space.shape,
+        envs.observation_space.spaces,
         envs.action_space,
-        base_kwargs={'recurrent': args.recurrent_policy})
-    actor_critic.to(device)
+        base='srnn',
+        base_kwargs=config)
 
     if sys_args.algo == 'a2c':
         agent = algo.A2C_ACKTR(
@@ -114,7 +114,7 @@ def main(sys_args):
         agent = algo.A2C_ACKTR(
             actor_critic, args.value_loss_coef, args.entropy_coef, acktr=True)
 
-    if sys_args.gail:
+    if args.gail:
         assert len(envs.observation_space.shape) == 1
         discr = gail.Discriminator(
             envs.observation_space.shape[0] + envs.action_space.shape[0], 100,
@@ -132,9 +132,13 @@ def main(sys_args):
             shuffle=True,
             drop_last=drop_last)
 
-    rollouts = RolloutStorage(args.num_steps, args.num_processes,
-                              envs.observation_space.shape, envs.action_space,
-                              actor_critic.recurrent_hidden_state_size)
+    rollouts = RolloutStorage(args.num_steps, 
+                              args.num_processes,
+                              envs.observation_space.spaces, 
+                              envs.action_space,
+                              config.PolicyConfig.SRNN.human_node_rnn_size,
+							  config.PolicyConfig.SRNN.human_human_edge_rnn_size,
+                              recurrent_cell_type='GRU')
 
     obs = envs.reset()
     rollouts.obs[0].copy_(obs)

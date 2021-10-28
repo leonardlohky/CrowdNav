@@ -5,6 +5,7 @@ import torch.nn.functional as F
 
 from pytorchBaselines.a2c_ppo_acktr.distributions import Bernoulli, Categorical, DiagGaussian
 from pytorchBaselines.a2c_ppo_acktr.utils import init
+from pytorchBaselines.a2c_ppo_acktr.srnn_model import SRNN
 
 
 class Flatten(nn.Module):
@@ -17,15 +18,19 @@ class Policy(nn.Module):
         super(Policy, self).__init__()
         if base_kwargs is None:
             base_kwargs = {}
-        if base is None:
+        if base == 'srnn':
+            base = SRNN
+            self.base = base(obs_shape, base_kwargs)
+            self.srnn = True
+        elif base is None:
             if len(obs_shape) == 3:
                 base = CNNBase
+                self.base = base(obs_shape[0], **base_kwargs)
             elif len(obs_shape) == 1:
                 base = MLPBase
+                self.base = base(obs_shape[0], **base_kwargs)
             else:
                 raise NotImplementedError
-
-        self.base = base(obs_shape[0], **base_kwargs)
 
         if action_space.__class__.__name__ == "Discrete":
             num_outputs = action_space.n
