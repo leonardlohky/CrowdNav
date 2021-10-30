@@ -239,7 +239,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Parse configuration file')
     parser.add_argument('--policy', type=str, default='ppo')
     parser.add_argument('--algo', type=str, default='ppo')
-    parser.add_argument('--config', type=str, default='configs/icra_benchmark/ppo.py')
+    parser.add_argument('--config', type=str, default='icra_benchmark/ppo.py')
     parser.add_argument('--output_dir', type=str, default='data_ppo/output')
     parser.add_argument('--overwrite', default=False, action='store_true')
     parser.add_argument('--weights', type=str)

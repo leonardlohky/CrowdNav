@@ -15,7 +15,7 @@ inside the crowd_nav/ folder.
 
 1. Train a policy.
 
-First, create a config file for the particular policy to be trained. E.g. if training an LSTM-RL policy, create a config named lstm_rl.py under crowd_nav/configs/icra_benchmark.
+First, create a config file for the particular policy to be trained. E.g. if training an LSTM-RL policy, create a config named lstm_rl.py under configs/icra_benchmark.
 The base config file should at least contain the following lines:
 ```
 from crowd_nav.configs.icra_benchmark.config import BaseEnvConfig, BasePolicyConfig, BaseTrainConfig, Config
