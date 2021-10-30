@@ -10,7 +10,8 @@ class PolicyConfig(BasePolicyConfig):
     def __init__(self, debug=False):
         super(PolicyConfig, self).__init__(debug)
         self.name = 'tree_search_rl'
-
+        self.explorer_type = 'DQN'
+        
         # gcn
         self.gcn.num_layer = 1
         self.gcn.X_dim = 32

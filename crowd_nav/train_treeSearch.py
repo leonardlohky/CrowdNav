@@ -15,7 +15,7 @@ from tensorboardX import SummaryWriter
 from crowd_sim.envs.utils.robot import RobotDQN
 from crowd_nav.utils.trainer import VNRLTrainerDQN, MPRLTrainer, TSRLTrainer
 from crowd_nav.utils.memory import ReplayMemory
-from crowd_nav.utils.explorer import ExplorerDQN
+from crowd_nav.utils.explorer import ExplorerDQN, ExplorerPPO
 from crowd_nav.policy.policy_factory import policy_factory
 
 import matplotlib.pyplot as plt
@@ -132,6 +132,7 @@ def main(args):
                               freeze_state_predictor=train_config.train.freeze_state_predictor,
                               detach_state_predictor=train_config.train.detach_state_predictor,
                               share_graph_model=policy_config.model_predictive_rl.share_graph_model)
+    
     elif policy_config.name == 'tree_search_rl':
         trainer = TSRLTrainer(model, policy.state_predictor, memory, device, policy, writer, batch_size, optimizer, env.human_num,
                               reduce_sp_update_frequency=train_config.train.reduce_sp_update_frequency,
@@ -147,7 +148,13 @@ def main(args):
                               share_graph_model=policy_config.model_predictive_rl.share_graph_model)
     else:
         trainer = VNRLTrainerDQN(model, memory, device, policy, batch_size, optimizer, writer)
-    explorer = ExplorerDQN(env, robot, device, writer, memory, policy.gamma, target_policy=policy)
+    
+    if policy_config.explorer_type == 'DQN':
+        explorer = ExplorerDQN(env, robot, device, writer, memory, policy.gamma, target_policy=policy)
+    
+    else:
+        explorer = ExplorerPPO(env, robot, device, memory, policy.gamma, target_policy=policy)
+
     policy.save_model(in_weight_file)
     # imitation learning
     if args.resume:
