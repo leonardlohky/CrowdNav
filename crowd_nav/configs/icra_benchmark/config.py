@@ -107,6 +107,14 @@ class BasePolicyConfig(object):
     cadrl.mlp_dims = [150, 100, 100, 1]
     cadrl.multiagent_training = False
 
+    rnn_rl= Config()
+    rnn_rl.global_state_dim = 50
+    rnn_rl.mlp1_dims = [150, 100, 100, 50]
+    rnn_rl.mlp2_dims = [150, 100, 100, 1]
+    rnn_rl.multiagent_training = True
+    rnn_rl.with_om = False
+    rnn_rl.with_interaction_module = True
+
     lstm_rl = Config()
     lstm_rl.global_state_dim = 50
     lstm_rl.mlp1_dims = [150, 100, 100, 50]
