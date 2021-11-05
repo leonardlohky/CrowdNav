@@ -123,7 +123,7 @@ class ValueEstimator(nn.Module):
         new_state = (new_robot_state, new_human_state)
         
         return new_state
-    
+        
 class DQNNetwork(nn.Module):
     def __init__(self, config, graph_model):
         super().__init__()

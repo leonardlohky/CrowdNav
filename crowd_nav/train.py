@@ -11,9 +11,9 @@ import git
 import re
 from tensorboardX import SummaryWriter
 from crowd_sim.envs.utils.robot import Robot
-from crowd_nav.utils.trainer import VNRLTrainer, MPRLTrainer
+from crowd_nav.utils.trainer import VNRLTrainer, VNRLTrainerPPO, MPRLTrainer
 from crowd_nav.utils.memory import ReplayMemory
-from crowd_nav.utils.explorer import Explorer
+from crowd_nav.utils.explorer import Explorer, ExplorerPPO
 from crowd_nav.policy.policy_factory import policy_factory
 
 
@@ -118,6 +118,7 @@ def main(args):
     model = policy.get_model()
     batch_size = train_config.trainer.batch_size
     optimizer = train_config.trainer.optimizer
+    train_config = config.TrainConfig()
     if policy_config.name == 'model_predictive_rl':
         trainer = MPRLTrainer(model, policy.state_predictor, memory, device, policy, writer, batch_size, optimizer, env.human_num,
                               reduce_sp_update_frequency=train_config.train.reduce_sp_update_frequency,
@@ -125,8 +126,14 @@ def main(args):
                               detach_state_predictor=train_config.train.detach_state_predictor,
                               share_graph_model=policy_config.model_predictive_rl.share_graph_model)
     else:
-        trainer = VNRLTrainer(model, memory, device, policy, batch_size, optimizer, writer)
-    explorer = Explorer(env, robot, device, writer, memory, policy.gamma, target_policy=policy)
+        if train_config.type == 'ppo':
+            logging.info("Training policy using PPO")
+            trainer = VNRLTrainerPPO(model, memory, device, policy, batch_size, optimizer, writer)
+            explorer = ExplorerPPO(env, robot, device, writer, memory, policy.gamma, target_policy=policy)
+        else:
+            logging.info("Training policy using V-learning")
+            trainer = VNRLTrainer(model, memory, device, policy, batch_size, optimizer, writer)
+            explorer = Explorer(env, robot, device, writer, memory, policy.gamma, target_policy=policy)
 
     # imitation learning to warm start model for actual training later on
     if args.resume:
@@ -185,6 +192,7 @@ def main(args):
             explorer.log('test', episode // evaluation_interval)
 
     episode = 0
+    logging.info('Begin reinforcement learning train process')
     while episode < train_episodes:
         if args.resume:
             epsilon = epsilon_end

@@ -1,13 +1,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.utils.rnn as rnn_utils
+from torch.nn.functional import softmax
+from torch.distributions import Categorical
 import logging
 from crowd_nav.policy.cadrl import mlp
 from crowd_nav.policy.multi_human_rl import MultiHumanRL
 
 
 class ValueNetwork(nn.Module):
-    def __init__(self, input_dim, self_state_dim, mlp1_dims, mlp2_dims, mlp3_dims, attention_dims, with_global_state,
+    def __init__(self, input_dim, self_state_dim, mlp1_dims, mlp2_dims, mlp3_dims, lin1_dims, lin2_dims, attention_dims, with_global_state,
                  cell_size, cell_num):
         super().__init__()
         self.self_state_dim = self_state_dim
@@ -24,8 +26,10 @@ class ValueNetwork(nn.Module):
         mlp3_input_dim = mlp2_dims[-1] + self.self_state_dim
         self.mlp3 = mlp(mlp3_input_dim, mlp3_dims)
         self.attention_weights = None
+        self.lin1 = mlp(mlp3_dims[-1], [lin1_dims])
+        self.lin2 = mlp(mlp3_dims[-1], [lin2_dims])
 
-    def forward(self, state_input):
+    def forward(self, state_input, getPI=False):
         """
         First transform the world coordinates to self-centric coordinates and then do forward computation
 
@@ -69,10 +73,18 @@ class ValueNetwork(nn.Module):
 
         # concatenate agent's state with global weighted humans' state
         joint_state = torch.cat([self_state, weighted_feature], dim=1)
-        value = self.mlp3(joint_state)
-        return value
-
-
+        mlp3_output = self.mlp3(joint_state)
+        
+        # calculate policy and value and return
+        pi = softmax(self.lin1(mlp3_output), dim=1) # (batch_size, self.lin1)
+        pi = Categorical(probs=pi)
+        value = self.lin2(mlp3_output) # (batch_size, self.lin2)
+        
+        if getPI:
+            return pi, value
+        else:
+            return value
+    
 class SARL(MultiHumanRL):
     def __init__(self):
         super().__init__()
@@ -87,10 +99,12 @@ class SARL(MultiHumanRL):
         mlp1_dims = config.sarl.mlp1_dims
         mlp2_dims = config.sarl.mlp2_dims
         mlp3_dims = config.sarl.mlp3_dims
+        lin1_dims = config.sarl.lin1_dims
+        lin2_dims = config.sarl.lin2_dims
         attention_dims = config.sarl.attention_dims
         with_global_state = config.sarl.with_global_state
         self.model = ValueNetwork(self.input_dim(), self.self_state_dim, mlp1_dims, mlp2_dims, mlp3_dims,
-                                  attention_dims, with_global_state, self.cell_size, self.cell_num)
+                                  lin1_dims, lin2_dims, attention_dims, with_global_state, self.cell_size, self.cell_num)
         if self.with_om:
             self.name = 'OM-SARL'
         logging.info('Policy: {} {} global state'.format(self.name, 'w/' if with_global_state else 'w/o'))

@@ -133,7 +133,10 @@ class BasePolicyConfig(object):
     sarl.mlp1_dims = [150, 100]
     sarl.mlp2_dims = [100, 50]
     sarl.attention_dims = [100, 100, 1]
-    sarl.mlp3_dims = [150, 100, 100, 1]
+    # sarl.mlp3_dims = [150, 100, 100, 1]
+    sarl.mlp3_dims = [150, 100, 100]
+    sarl.lin1_dims = 81
+    sarl.lin2_dims = 1
     sarl.multiagent_training = True
     sarl.with_om = True
     sarl.with_global_state = True

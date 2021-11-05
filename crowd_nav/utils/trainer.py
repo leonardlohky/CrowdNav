@@ -13,7 +13,7 @@ class TSRLTrainer(object):
     def __init__(self, value_estimator, state_predictor, memory, device, policy, writer, batch_size, optimizer_str, human_num,
                  reduce_sp_update_frequency, freeze_state_predictor, detach_state_predictor, share_graph_model):
         """
-        Train the trainable model of a policy
+        Train the trainable model of a tree search based policy
         """
         self.value_estimator = value_estimator
         self.state_predictor = state_predictor
@@ -447,7 +447,8 @@ class VNRLTrainer(object):
 class VNRLTrainerDQN(object):
     def __init__(self, model, memory, device, policy, batch_size, optimizer_str, writer):
         """
-        Train the trainable model of a policy
+        Train the trainable model of a value network based policy
+        using DQN
         """
         self.model = model
         self.device = device
@@ -532,33 +533,38 @@ class VNRLTrainerDQN(object):
 
         return average_loss
   
-class PPOTrainer(object):
-    def __init__(self, model, memory, device, batch_size):
+class VNRLTrainerPPO(object):
+    def __init__(self, model, memory, device, policy, batch_size, optimizer_str, writer):
         """
-        Train the trainable model of a policy
+        Train the trainable model of a value network based policy
+        using PPO
         """
         self.model = model
         self.device = device
+        self.policy = policy
+        self.target_model = None
         self.criterion = nn.MSELoss().to(device)
         self.memory = memory
         self.data_loader = None
         self.batch_size = batch_size
+        self.optimizer_str = optimizer_str
         self.optimizer = None
+        self.writer = writer
         self.ppo_loss = ClippedPPOLoss()
         self.value_loss = ClippedValueFunctionLoss()
-
+    
+    def update_target_model(self, target_model):
+        self.target_model = copy.deepcopy(target_model)
+        
     def set_learning_rate(self, learning_rate):
-        logging.info('Current learning rate: %f', learning_rate)
-        self.optimizer = optim.SGD(self.model.parameters(), lr=learning_rate, momentum=0.9)
-
-    def set_optimizer(self, optimizer, learning_rate, epsilon=None):
-        logging.info('Current learning rate: %f', learning_rate)
-        if optimizer == 'sgd':
+        if self.optimizer_str == 'Adam':
+            self.optimizer = optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=learning_rate)
+        elif self.optimizer_str == 'SGD':
             self.optimizer = optim.SGD(self.model.parameters(), lr=learning_rate, momentum=0.9)
-        elif optimizer == 'adam':
-            self.optimizer = optim.Adam(self.model.parameters(), lr=learning_rate, eps=epsilon)
         else:
             raise NotImplementedError
+        logging.info('Lr: {} for parameters {} with {} optimizer'.format(learning_rate, ' '.join(
+            [name for name, param in self.model.named_parameters()]), self.optimizer_str))
 
     def optimize_epoch(self, num_epochs):
         if self.optimizer is None:
@@ -586,13 +592,15 @@ class PPOTrainer(object):
                     sampled_return = values + advantages
                     sampled_normalized_advantage = (advantages - advantages.mean())/(advantages.std() + 1e-8)
                     pi, val = self.model(inputs, getPI=True)
-                    log_pi = pi.log_prob(aas)
+                    log_pi = pi.log_prob(aas).double()
                     # calculate policy loss
                     policy_loss = self.ppo_loss(log_pi, log_pis, sampled_normalized_advantage, 0.1)
                     # calculate Entropy Bonus
                     entropy_bonus = pi.entropy()
                     entropy_bonus = entropy_bonus.mean()
+                    entropy_bonus = entropy_bonus.double()
                     # calculate value function loss
+                    val = val.double()
                     value_loss = self.value_loss(val, values, sampled_return, 0.1)
                     # calculate total loss
                     loss = policy_loss + 0.5 * value_loss - 0.01 * entropy_bonus
@@ -607,11 +615,12 @@ class PPOTrainer(object):
                 epoch_loss += loss.data.item()
 
             average_epoch_loss = epoch_loss / len(self.memory)
-            logging.debug('Average loss in epoch %d: %.2E', epoch, average_epoch_loss)
+            self.writer.add_scalar('IL/average_epoch_loss', average_epoch_loss, epoch)
+            logging.info('Average loss in epoch %d: %.2E', epoch, average_epoch_loss)
 
         return average_epoch_loss
 
-    def optimize_batch(self, num_batches):
+    def optimize_batch(self, num_batches, episode=None):
         if self.optimizer is None:
             raise ValueError('Learning rate is not set!')
         if self.data_loader is None:
@@ -640,13 +649,15 @@ class PPOTrainer(object):
                 sampled_return = values + advantages
                 sampled_normalized_advantage = (advantages - advantages.mean())/(advantages.std() + 1e-8)
                 pi, val = self.model(inputs, getPI=True)
-                log_pi = pi.log_prob(aas)
+                log_pi = pi.log_prob(aas).double()
                 # calculate policy loss
                 policy_loss = self.ppo_loss(log_pi, log_pis, sampled_normalized_advantage, 0.1)
                 # calculate Entropy Bonus
                 entropy_bonus = pi.entropy()
                 entropy_bonus = entropy_bonus.mean()
+                entropy_bonus = entropy_bonus.double()
                 # calculate value function loss
+                val = val.double()
                 value_loss = self.value_loss(val, values, sampled_return, 0.1)
                 # calculate total loss
                 loss = policy_loss + 0.5 * value_loss - 0.01 * entropy_bonus

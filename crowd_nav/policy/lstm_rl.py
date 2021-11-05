@@ -68,7 +68,6 @@ class ValueNetwork2(nn.Module):
         value = self.mlp(joint_state)
         return value
 
-
 class LstmRL(MultiHumanRL):
     def __init__(self):
         super().__init__()
