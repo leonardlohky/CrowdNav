@@ -169,6 +169,14 @@ class BasePolicyConfig(object):
     bilstm_rl.multiagent_training = True
     bilstm_rl.with_om = False
     bilstm_rl.with_interaction_module = True
+
+    rnn_rl= Config()
+    rnn_rl.global_state_dim = 50
+    rnn_rl.mlp1_dims = [150, 100, 100, 50]
+    rnn_rl.mlp2_dims = [150, 100, 100, 1]
+    rnn_rl.multiagent_training = True
+    rnn_rl.with_om = False
+    rnn_rl.with_interaction_module = True
     
     # SRNN config
     SRNN = Config()
